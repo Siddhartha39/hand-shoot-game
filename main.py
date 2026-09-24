@@ -35,15 +35,17 @@ def main() -> None:
     args = parser.parse_args()
 
     print("\n" + "=" * 65)
-    print("        HAND GUN GESTURE SHOOTER")
-    print("=" * 65)
-    print("Game Controls:")
+    print("Game Controls & Features:")
+    print("  - Dual Wielding:  Use 1 or 2 hands for independent aiming & shooting!")
     print("  - Hand Gun Ready: Point index finger to aim crosshair")
     print("  - Thumb Trigger:  Curl/pull thumb down to fire shot")
+    print("  - Reload Gesture: Point hand DOWN or TAP PALMS together (or [SPACE])")
+    print("  - [S] Key:        Cycle Sound Packs (LASER, REVOLVER, SILENCER)")
     print("  - [M] Key:        Toggle between HAND MODE and MOUSE MODE")
     print("  - [D] Key:        Toggle DEBUG overlay (FPS & counts)")
     print("  - [R] Key:        Restart current round")
     print("  - [Q] / [ESC]:    Quit application")
+    print("  - Special:        Defeat shielded BOSSES & collect POWER-UPS (Freeze/Rapid/Life)")
     print("=" * 65 + "\n")
 
     initial_mode = "MOUSE" if args.mouse else "HAND"
@@ -88,7 +90,7 @@ def main() -> None:
 
     if game.control_mode == "HAND":
         try:
-            tracker = HandTracker(max_num_hands=1, min_detection_confidence=0.7)
+            tracker = HandTracker(max_num_hands=2, min_detection_confidence=0.65)
             cap = cv2.VideoCapture(args.camera)
             if not cap.isOpened():
                 print(f"[WARNING] Camera at index {args.camera} unavailable.")
@@ -122,18 +124,18 @@ def main() -> None:
             if game.control_mode == "HAND" and cap is not None and tracker is not None:
                 ret, frame = cap.read()
                 if ret and frame is not None:
-                    # Run hand tracking
-                    annotated_frame, raw_landmarks, index_tip = tracker.process_frame(
+                    # Run multi-hand tracking (supports both hands simultaneously)
+                    annotated_frame, hands_data = tracker.process_frame_multi(
                         frame, flip_horizontal=True
                     )
                     # Pass frame to mini camera HUD PiP
                     game.set_camera_frame(annotated_frame)
 
-                    # Update gun controller
-                    control_state = controller.update(
-                        raw_landmarks=raw_landmarks,
-                        index_tip_norm=index_tip,
+                    # Update gun controller with both hands & power-up state
+                    control_state = controller.update_multi(
+                        hands_data=hands_data,
                         gesture_classifier=classifier,
+                        rapid_fire=(game.rapid_fire_timer > 0),
                     )
                 else:
                     game.set_camera_frame(None)

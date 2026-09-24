@@ -144,6 +144,8 @@
   <header>
     <div class="header-title">🎯 Hand Gun Gesture Shooter (Web / Vercel Edition)</div>
     <div class="controls-hint">
+      <span class="badge" id="hud-sound-badge" style="cursor: pointer; color: #ffd750;" title="Click or press [S] to switch sound pack">SOUND: LASER [S]</span>
+      <span>[SPACE] Reload</span>
       <span>[M] Toggle Mode</span>
       <span>[R] Restart</span>
       <span class="badge" id="hud-mode-badge">HAND MODE</span>
@@ -154,21 +156,24 @@
     <canvas id="game-canvas" width="1000" height="700"></canvas>
     <video id="webcam-video" playsinline></video>
     <canvas id="pip-canvas" width="180" height="135"></canvas>
-    <div id="pip-label">WEBCAM PIP</div>
+    <div id="pip-label">DUAL CAM FEED</div>
 
     <!-- Start / Camera Permission Overlay -->
     <div id="start-modal">
-      <h1 style="font-size: 32px; color: #58a6ff; margin-bottom: 10px;">🎯 Hand Gun Gesture Shooter</h1>
-      <p style="max-width: 500px; line-height: 1.6; color: #8b949e;">
-        Play with your webcam using hand gestures, or play immediately with mouse controls!
+      <h1 style="font-size: 32px; color: #58a6ff; margin-bottom: 8px;">🎯 Hand Gun Gesture Shooter</h1>
+      <h3 style="font-size: 16px; color: #00ffd5; margin-bottom: 12px;">Dual-Wielding & Boss Battles Edition</h3>
+      <p style="max-width: 520px; line-height: 1.5; color: #8b949e; font-size: 14px;">
+        Control independent virtual crosshairs using both hands simultaneously with live computer vision, or play with mouse controls!
       </p>
-      <div style="background: #161b22; padding: 16px; border-radius: 8px; border: 1px solid #30363d; max-width: 480px; text-align: left; font-size: 14px;">
-        <p style="margin-bottom: 8px;">👉 <b>Point Index Finger:</b> Move virtual crosshair</p>
-        <p style="margin-bottom: 8px;">👉 <b>Pull Down Thumb:</b> Trigger shot</p>
-        <p>👉 <b>Mouse Mode:</b> Move mouse to aim, left-click to shoot</p>
+      <div style="background: #161b22; padding: 16px; border-radius: 8px; border: 1px solid #30363d; max-width: 520px; text-align: left; font-size: 13px; line-height: 1.6;">
+        <p>🔫 <b>Two-Hand Dual Wielding:</b> Point with 1 or 2 hands for independent Cyan & Orange crosshairs!</p>
+        <p>🎯 <b>Aim & Trigger:</b> Point index finger to aim; pull down thumb to fire.</p>
+        <p>🔄 <b>Reload Gestures:</b> Point hand <b>DOWN</b> or <b>TAP PALMS</b> together (or press <b>[SPACE]</b>).</p>
+        <p>🔊 <b>Sound Packs:</b> Press <b>[S]</b> to cycle <b>LASER</b>, <b>REVOLVER</b>, and <b>SILENCER</b> audio!</p>
+        <p>👾 <b>Boss Battles & Power-Ups:</b> Destroy shielded Boss Drones; shoot <b>⏳ Freeze</b>, <b>⚡ Rapid Fire</b>, and <b>💖 Health</b>!</p>
       </div>
-      <div style="display: flex; gap: 15px;">
-        <button class="btn" id="start-webcam-btn">🎥 Enable Webcam & Play</button>
+      <div style="display: flex; gap: 15px; margin-top: 5px;">
+        <button class="btn" id="start-webcam-btn">🎥 Enable Dual Webcam & Play</button>
         <button class="btn btn-secondary" id="start-mouse-btn">🖱️ Play with Mouse</button>
       </div>
     </div>
