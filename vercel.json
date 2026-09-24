@@ -1,11 +1,3 @@
 {
-  "version": 2,
-  "name": "hand-shoot-game",
-  "cleanUrls": true,
-  "routes": [
-    {
-      "src": "/(.*)",
-      "dest": "/$1"
-    }
-  ]
+  "cleanUrls": true
 }
