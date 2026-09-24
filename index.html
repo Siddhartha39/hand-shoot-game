@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hand Gun Gesture Shooter</title>
+  <!-- MediaPipe Hands & Camera Utils from CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+    }
+    body {
+      background: #0d1117;
+      color: #f0f6fc;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      overflow: hidden;
+    }
+    #game-container {
+      position: relative;
+      width: 1000px;
+      height: 700px;
+      max-width: 98vw;
+      max-height: 90vh;
+      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.8), 0 0 0 2px #30363d;
+      border-radius: 12px;
+      overflow: hidden;
+      background: #10141c;
+    }
+    canvas#game-canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+      cursor: crosshair;
+    }
+    /* Hidden webcam video element */
+    #webcam-video {
+      display: none;
+    }
+    /* Header & Control Bar */
+    header {
+      width: 1000px;
+      max-width: 98vw;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 12px;
+      font-size: 14px;
+      color: #8b949e;
+    }
+    .header-title {
+      font-weight: 700;
+      color: #58a6ff;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .controls-hint {
+      display: flex;
+      gap: 16px;
+    }
+    .badge {
+      background: #21262d;
+      padding: 3px 8px;
+      border-radius: 6px;
+      border: 1px solid #30363d;
+      color: #c9d1d9;
+    }
+    /* Web PiP Preview Canvas */
+    #pip-canvas {
+      position: absolute;
+      bottom: 45px;
+      right: 15px;
+      width: 180px;
+      height: 135px;
+      border-radius: 8px;
+      border: 2px solid #30363d;
+      background: rgba(0, 0, 0, 0.6);
+      pointer-events: none;
+      z-index: 10;
+    }
+    #pip-label {
+      position: absolute;
+      bottom: 155px;
+      right: 25px;
+      font-size: 11px;
+      font-weight: 700;
+      color: #00ffd5;
+      background: rgba(0, 0, 0, 0.7);
+      padding: 2px 6px;
+      border-radius: 4px;
+      pointer-events: none;
+      z-index: 11;
+    }
+    /* Permission / Start Modal */
+    #start-modal {
+      position: absolute;
+      inset: 0;
+      background: rgba(10, 14, 20, 0.92);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 50;
+      gap: 20px;
+      padding: 30px;
+      text-align: center;
+    }
+    .btn {
+      background: #238636;
+      color: #ffffff;
+      border: none;
+      padding: 12px 28px;
+      font-size: 16px;
+      font-weight: 600;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background 0.2s, transform 0.1s;
+    }
+    .btn:hover {
+      background: #2ea043;
+      transform: translateY(-1px);
+    }
+    .btn-secondary {
+      background: #21262d;
+      border: 1px solid #30363d;
+      color: #c9d1d9;
+    }
+    .btn-secondary:hover {
+      background: #30363d;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="header-title">🎯 Hand Gun Gesture Shooter (Web / Vercel Edition)</div>
+    <div class="controls-hint">
+      <span>[M] Toggle Mode</span>
+      <span>[R] Restart</span>
+      <span class="badge" id="hud-mode-badge">HAND MODE</span>
+    </div>
+  </header>
+
+  <div id="game-container">
+    <canvas id="game-canvas" width="1000" height="700"></canvas>
+    <video id="webcam-video" playsinline></video>
+    <canvas id="pip-canvas" width="180" height="135"></canvas>
+    <div id="pip-label">WEBCAM PIP</div>
+
+    <!-- Start / Camera Permission Overlay -->
+    <div id="start-modal">
+      <h1 style="font-size: 32px; color: #58a6ff; margin-bottom: 10px;">🎯 Hand Gun Gesture Shooter</h1>
+      <p style="max-width: 500px; line-height: 1.6; color: #8b949e;">
+        Play with your webcam using hand gestures, or play immediately with mouse controls!
+      </p>
+      <div style="background: #161b22; padding: 16px; border-radius: 8px; border: 1px solid #30363d; max-width: 480px; text-align: left; font-size: 14px;">
+        <p style="margin-bottom: 8px;">👉 <b>Point Index Finger:</b> Move virtual crosshair</p>
+        <p style="margin-bottom: 8px;">👉 <b>Pull Down Thumb:</b> Trigger shot</p>
+        <p>👉 <b>Mouse Mode:</b> Move mouse to aim, left-click to shoot</p>
+      </div>
+      <div style="display: flex; gap: 15px;">
+        <button class="btn" id="start-webcam-btn">🎥 Enable Webcam & Play</button>
+        <button class="btn btn-secondary" id="start-mouse-btn">🖱️ Play with Mouse</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="web_game.js"></script>
+</body>
+</html>
