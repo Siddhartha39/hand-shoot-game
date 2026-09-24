@@ -1119,7 +1119,7 @@ class GunShooterGame:
             pygame.draw.line(surface, reticle_color, (cx, cy - radius - tick), (cx, cy - gap), 2)
             pygame.draw.line(surface, reticle_color, (cx, cy + gap), (cx, cy + radius + tick), 2)
             pygame.draw.line(surface, reticle_color, (cx - radius - tick, cy), (cx - gap, cy), 2)
-            pygame.draw.line(surface, reticle_color, (cx + gap, cy), (cx + radius + tick), 2)
+            pygame.draw.line(surface, reticle_color, (cx + gap, cy), (cx + radius + tick, cy), 2)
 
             max_ammo = g["max_ammo"]
             cur_ammo = g["ammo"]

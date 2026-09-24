@@ -14,7 +14,12 @@ from typing import Any, Dict, List, Optional, Tuple
 import numpy as np
 
 from gesture_model import GESTURE_GUN_READY, GESTURE_SHOOT, GestureClassifier
-from hand_tracker import check_two_hand_tap, get_thumb_trigger_metric, is_pointing_down
+from hand_tracker import (
+    MIDDLE_MCP_IDX,
+    check_two_hand_tap,
+    get_thumb_trigger_metric,
+    is_pointing_down,
+)
 
 # Configurable Controller Parameters
 SMOOTHING_FACTOR: float = 0.35  # Alpha for Exponential Moving Average (0 < alpha <= 1)
@@ -196,13 +201,16 @@ class GunController:
                 palm_tap_detected = True
                 self.reload_all()
 
-        # 2. Stable Hand-to-Gun Spatial Association
-        # To prevent index flipping jitter when both hands are on screen:
-        # Sort hands from left to right on screen
+        # 2. Rock-Solid Spatial Hand-to-Gun Assignment using Palm Center
+        # Palm Center X = (wrist_norm.x + lm[MIDDLE_MCP].x) / 2.0
+        # Gun 1 (LEFT GUN, Orange) takes hand on the left of screen
+        # Gun 0 (RIGHT GUN, Cyan) takes hand on the right of screen
         sorted_hands: List[Optional[Dict[str, Any]]] = [None, None]
         if len(hands_data) >= 2:
             hA, hB = hands_data[0], hands_data[1]
-            if hA["index_tip_norm"][0] < hB["index_tip_norm"][0]:
+            palm_xA = (hA["wrist_norm"][0] + float(hA["landmarks"][MIDDLE_MCP_IDX][0])) / 2.0
+            palm_xB = (hB["wrist_norm"][0] + float(hB["landmarks"][MIDDLE_MCP_IDX][0])) / 2.0
+            if palm_xA < palm_xB:
                 sorted_hands[1] = hA  # Left side of screen -> Left Gun (Gun 1)
                 sorted_hands[0] = hB  # Right side of screen -> Right Gun (Gun 0)
             else:
@@ -210,13 +218,17 @@ class GunController:
                 sorted_hands[0] = hA
         elif len(hands_data) == 1:
             h = hands_data[0]
-            # Match by proximity or default to Gun 0
-            if self.guns[1].active and not self.guns[0].active:
-                sorted_hands[1] = h
-            elif h["index_tip_norm"][0] < 0.40 and self.guns[1].has_aim_history:
-                sorted_hands[1] = h
+            palm_x = (h["wrist_norm"][0] + float(h["landmarks"][MIDDLE_MCP_IDX][0])) / 2.0
+            if palm_x < 0.45:
+                sorted_hands[1] = h  # Left side -> Left Gun
+            elif palm_x > 0.55:
+                sorted_hands[0] = h  # Right side -> Right Gun
             else:
-                sorted_hands[0] = h
+                # Near center: preserve whichever gun was active, or default to Gun 0
+                if self.guns[1].active and not self.guns[0].active:
+                    sorted_hands[1] = h
+                else:
+                    sorted_hands[0] = h
 
         guns_state: List[Dict[str, Any]] = []
         any_reloaded_this_frame = False

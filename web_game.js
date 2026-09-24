@@ -796,10 +796,15 @@ class WebShooterGame {
         const rect = this.canvas.getBoundingClientRect();
         const mx = (e.clientX - rect.left) * (this.width / rect.width);
         const my = (e.clientY - rect.top) * (this.height / rect.height);
-        this.guns[0].aimX = mx;
+        this.guns[0].aimX = mx + 28;
         this.guns[0].aimY = my;
         this.guns[0].isGunReady = true;
         this.guns[0].active = true;
+
+        this.guns[1].aimX = mx - 28;
+        this.guns[1].aimY = my;
+        this.guns[1].isGunReady = true;
+        this.guns[1].active = true;
       }
     });
 
@@ -812,10 +817,10 @@ class WebShooterGame {
           const g = this.guns[gunIdx];
           if (g.ammo > 0 || this.rapidFireTimer > 0) {
             if (this.rapidFireTimer <= 0) g.ammo--;
-            this.shootAt(this.guns[0].aimX, this.guns[0].aimY, gunIdx);
+            this.shootAt(g.aimX, g.aimY, gunIdx);
           } else {
             this.sound.playEmpty();
-            this.floatingTexts.push(new FloatingText(this.guns[0].aimX, this.guns[0].aimY, "CLICK! RELOAD", "#ff5050"));
+            this.floatingTexts.push(new FloatingText(g.aimX, g.aimY, "CLICK! RELOAD", "#ff5050"));
           }
         } else if (this.state === "GAME_OVER") {
           this.resetGame();
@@ -1013,8 +1018,8 @@ class WebShooterGame {
 
     hands.setOptions({
       maxNumHands: 2, // Enable two-hand simultaneous tracking
-      modelComplexity: 1,
-      minDetectionConfidence: 0.60,
+      modelComplexity: 0, // Lite model for smooth 60fps web tracking without dropping second hand
+      minDetectionConfidence: 0.50,
       minTrackingConfidence: 0.50,
     });
 
@@ -1047,6 +1052,21 @@ class WebShooterGame {
 
     const hands = results.multiHandLandmarks || [];
 
+    // Update PiP status indicator
+    const pipLabel = document.getElementById("pip-label");
+    if (pipLabel) {
+      if (hands.length >= 2) {
+        pipLabel.textContent = "DUAL HANDS (2/2)";
+        pipLabel.style.color = "#00ffd5";
+      } else if (hands.length === 1) {
+        pipLabel.textContent = "1 HAND (1/2)";
+        pipLabel.style.color = "#ffd228";
+      } else {
+        pipLabel.textContent = "SEARCHING HANDS";
+        pipLabel.style.color = "#ff6464";
+      }
+    }
+
     // Check two-hand palm tap reload
     if (hands.length >= 2) {
       const h1 = hands[0];
@@ -1069,18 +1089,18 @@ class WebShooterGame {
       }
     }
 
-    // Stable Spatial Hand-to-Gun Assignment (Sort by Mirrored Screen X Coordinate)
-    // Mirrored X = (1.0 - lm[8].x)
-    // Left Gun (Gun 1, Orange) takes hand on the left side of the screen
-    // Right Gun (Gun 0, Cyan) takes hand on the right side of the screen
+    // Rock-Solid Spatial Hand-to-Gun Assignment using Palm Center
+    // Palm Center Mirrored X = 1.0 - (lm[0].x + lm[9].x) / 2.0
+    // Gun 1 (LEFT GUN, Orange) takes hand on the left of screen
+    // Gun 0 (RIGHT GUN, Cyan) takes hand on the right of screen
     let rightHandLm = null;
     let leftHandLm = null;
 
     if (hands.length >= 2) {
       const hA = hands[0];
       const hB = hands[1];
-      const xA = 1.0 - hA[8].x;
-      const xB = 1.0 - hB[8].x;
+      const xA = 1.0 - (hA[0].x + hA[9].x) / 2.0;
+      const xB = 1.0 - (hB[0].x + hB[9].x) / 2.0;
       if (xA < xB) {
         leftHandLm = hA;
         rightHandLm = hB;
@@ -1090,12 +1110,18 @@ class WebShooterGame {
       }
     } else if (hands.length === 1) {
       const h = hands[0];
-      const x = 1.0 - h[8].x;
-      // Match to whichever gun was active/closest or default to Right Gun
-      if (x < 0.40 && this.guns[1].active && !this.guns[0].active) {
+      const x = 1.0 - (h[0].x + h[9].x) / 2.0;
+      if (x < 0.45) {
         leftHandLm = h;
-      } else {
+      } else if (x > 0.55) {
         rightHandLm = h;
+      } else {
+        // Near center: preserve whichever gun was active, or default to Right Gun
+        if (this.guns[1].active && !this.guns[0].active) {
+          leftHandLm = h;
+        } else {
+          rightHandLm = h;
+        }
       }
     }
 
@@ -1127,12 +1153,32 @@ class WebShooterGame {
   }
 
   drawLandmarksOnPip(lm, color, pw, ph) {
+    const connections = [
+      [0, 1], [1, 2], [2, 3], [3, 4],
+      [0, 5], [5, 6], [6, 7], [7, 8],
+      [5, 9], [9, 10], [10, 11], [11, 12],
+      [9, 13], [13, 14], [14, 15], [15, 16],
+      [13, 17], [17, 18], [18, 19], [19, 20],
+      [0, 17]
+    ];
+
+    this.pipCtx.save();
+    this.pipCtx.strokeStyle = color;
+    this.pipCtx.lineWidth = 1.5;
+    for (const [i, j] of connections) {
+      this.pipCtx.beginPath();
+      this.pipCtx.moveTo(lm[i].x * pw, lm[i].y * ph);
+      this.pipCtx.lineTo(lm[j].x * pw, lm[j].y * ph);
+      this.pipCtx.stroke();
+    }
+
     this.pipCtx.fillStyle = color;
     for (const p of lm) {
       this.pipCtx.beginPath();
       this.pipCtx.arc(p.x * pw, p.y * ph, 2.5, 0, Math.PI * 2);
       this.pipCtx.fill();
     }
+    this.pipCtx.restore();
   }
 
   processGunGesture(gun, lm) {
@@ -1159,42 +1205,45 @@ class WebShooterGame {
     if (tipLowerThanMcp && tipLowerThanWrist && dy > dx * 0.8) {
       if (gun.triggerReload()) {
         this.sound.playReload();
-        this.floatingTexts.push(new FloatingText(gun.aimX, gun.aimY - 20, "+RELOADING...", "#00ffd5"));
+        this.floatingTexts.push(new FloatingText(gun.aimX, gun.aimY - 20, "+RELOADED!", "#00ffd5"));
       }
     }
 
-    // Gun Ready Check
+    // Gun Ready Check: index extended, at least 1 finger folded
     const idxTipDist = dist(indexTip, wrist);
     const idxPipDist = dist(indexPip, wrist);
-    const idxExtended = idxTipDist > idxPipDist * 1.05 && (idxTipDist - dist(indexMcp, wrist)) / palmScale > 0.40;
+    const idxExtended = (idxTipDist > idxPipDist * 1.03) && (idxTipDist > dist(indexMcp, wrist));
 
-    const midFolded = dist(midTip, wrist) < dist(lm[10], wrist) * 1.25 || dist(midTip, midMcp) / palmScale < 0.95;
-    const ringFolded = dist(ringTip, wrist) < dist(lm[14], wrist) * 1.25 || dist(ringTip, lm[13]) / palmScale < 0.95;
-    const pinkyFolded = dist(pinkyTip, wrist) < dist(lm[18], wrist) * 1.25 || dist(pinkyTip, lm[17]) / palmScale < 0.95;
+    const midFolded = dist(midTip, wrist) < dist(indexTip, wrist) * 0.95 || dist(midTip, midMcp) / palmScale < 1.10;
+    const ringFolded = dist(ringTip, wrist) < dist(indexTip, wrist) * 0.95 || dist(ringTip, lm[13]) / palmScale < 1.10;
+    const pinkyFolded = dist(pinkyTip, wrist) < dist(indexTip, wrist) * 0.95 || dist(pinkyTip, lm[17]) / palmScale < 1.10;
 
-    const isGun = idxExtended && (midFolded ? 1 : 0) + (ringFolded ? 1 : 0) + (pinkyFolded ? 1 : 0) >= 2;
+    const isGun = idxExtended && ((midFolded ? 1 : 0) + (ringFolded ? 1 : 0) + (pinkyFolded ? 1 : 0) >= 1);
     gun.isGunReady = isGun;
 
     // Mirrored Aim Coords
     const normX = 1.0 - indexTip.x;
     const normY = indexTip.y;
-    const margin = 0.10;
+    const margin = 0.08;
     const clampedX = Math.min(1.0, Math.max(0.0, (normX - margin) / (1.0 - 2 * margin)));
     const clampedY = Math.min(1.0, Math.max(0.0, (normY - margin) / (1.0 - 2 * margin)));
 
     const targetX = clampedX * this.width;
     const targetY = clampedY * this.height;
 
-    gun.aimX = 0.35 * targetX + 0.65 * gun.aimX;
-    gun.aimY = 0.35 * targetY + 0.65 * gun.aimY;
+    gun.aimX = 0.40 * targetX + 0.60 * gun.aimX;
+    gun.aimY = 0.40 * targetY + 0.60 * gun.aimY;
 
-    // Trigger Pull Detection
-    gun.thumbMetric = dist(thumbTip, indexMcp) / palmScale;
+    // Trigger Pull Detection (Support both thumb-to-index and thumb-to-middle curl)
+    const dThumbIndex = dist(thumbTip, indexMcp) / palmScale;
+    const dThumbMid = dist(thumbTip, midMcp) / palmScale;
+    gun.thumbMetric = Math.min(dThumbIndex, dThumbMid);
+
     const now = performance.now();
-    const cooldown = this.rapidFireTimer > 0 ? 90 : 250;
+    const cooldown = this.rapidFireTimer > 0 ? 90 : 220;
 
     if (isGun) {
-      if (gun.thumbMetric < 0.58) {
+      if (gun.thumbMetric < 0.60) {
         gun.gesture = "SHOOT";
         if (now - gun.lastShotTime >= cooldown && !gun.isReloading) {
           if (gun.ammo > 0 || this.rapidFireTimer > 0) {

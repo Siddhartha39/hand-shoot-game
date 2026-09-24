@@ -131,7 +131,7 @@ def classify_gesture_heuristically(landmarks: np.ndarray) -> Tuple[str, float]:
     pinky_folded = (pinky_tip_dist < pinky_pip_dist * 1.22) or (pinky_mcp_to_tip < 0.95)
 
     folded_count = int(mid_folded) + int(ring_folded) + int(pinky_folded)
-    is_gun_shape = idx_extended and (folded_count >= 2)
+    is_gun_shape = idx_extended and (folded_count >= 1)
 
     if not is_gun_shape:
         return "NO_GUN", 0.90
@@ -145,7 +145,7 @@ def classify_gesture_heuristically(landmarks: np.ndarray) -> Tuple[str, float]:
         np.linalg.norm(thumb_tip - landmarks[MIDDLE_MCP_IDX]) / palm_scale
     )
 
-    if thumb_to_index_mcp < 0.52 or thumb_to_mid_mcp < 0.62:
+    if thumb_to_index_mcp < 0.58 or thumb_to_mid_mcp < 0.65:
         return "SHOOT", 0.88
     else:
         return "GUN_READY", 0.92
@@ -153,9 +153,8 @@ def classify_gesture_heuristically(landmarks: np.ndarray) -> Tuple[str, float]:
 
 def get_thumb_trigger_metric(landmarks: np.ndarray) -> float:
     """
-    Compute normalized thumb-to-index distance metric.
-    High value (~0.7 to 1.2) = Thumb cocked up (GUN_READY).
-    Low value (<0.52) = Thumb pulled down (SHOOT).
+    Compute normalized thumb trigger distance metric.
+    Checks distance to both index MCP and middle MCP.
     """
     wrist = landmarks[WRIST_IDX]
     mid_mcp = landmarks[MIDDLE_MCP_IDX]
@@ -163,7 +162,9 @@ def get_thumb_trigger_metric(landmarks: np.ndarray) -> float:
     if palm_scale < 1e-4:
         palm_scale = 1.0
     thumb_tip = landmarks[THUMB_TIP_IDX]
-    return float(np.linalg.norm(thumb_tip - landmarks[INDEX_MCP_IDX]) / palm_scale)
+    d_index = float(np.linalg.norm(thumb_tip - landmarks[INDEX_MCP_IDX]) / palm_scale)
+    d_mid = float(np.linalg.norm(thumb_tip - landmarks[MIDDLE_MCP_IDX]) / palm_scale)
+    return min(d_index, d_mid)
 
 
 def is_pointing_down(landmarks: np.ndarray) -> bool:
@@ -239,8 +240,8 @@ class HandTracker:
     def __init__(
         self,
         max_num_hands: int = 2,
-        min_detection_confidence: float = 0.65,
-        min_tracking_confidence: float = 0.5,
+        min_detection_confidence: float = 0.50,
+        min_tracking_confidence: float = 0.50,
     ) -> None:
         """Initialize the hand tracking detector."""
         self.max_num_hands = max_num_hands

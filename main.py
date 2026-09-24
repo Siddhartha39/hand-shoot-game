@@ -90,7 +90,7 @@ def main() -> None:
 
     if game.control_mode == "HAND":
         try:
-            tracker = HandTracker(max_num_hands=2, min_detection_confidence=0.65)
+            tracker = HandTracker(max_num_hands=2, min_detection_confidence=0.50)
             cap = cv2.VideoCapture(args.camera)
             if not cap.isOpened():
                 print(f"[WARNING] Camera at index {args.camera} unavailable.")
