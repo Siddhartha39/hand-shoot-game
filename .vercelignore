@@ -1,8 +1,0 @@
-# Ignore Python desktop files from Vercel deployment
-*.py
-requirements.txt
-models/
-data/
-venv/
-.mplconfig/
-__pycache__/

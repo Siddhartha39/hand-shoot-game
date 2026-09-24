@@ -159,3 +159,19 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+
+
+# Vercel Serverless Function compatibility entrypoint
+def handler(request=None, *args, **kwargs):
+    """Fallback handler if invoked on Vercel Python runtime."""
+    index_file = BASE_DIR / "index.html"
+    content = index_file.read_text(encoding="utf-8") if index_file.exists() else "Hand Gun Game"
+    return {
+        "statusCode": 200,
+        "headers": {"Content-Type": "text/html; charset=utf-8"},
+        "body": content,
+    }
+
+
+app = handler
+
