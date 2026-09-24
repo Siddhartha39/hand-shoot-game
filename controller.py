@@ -16,6 +16,7 @@ import numpy as np
 from gesture_model import GESTURE_GUN_READY, GESTURE_SHOOT, GestureClassifier
 from hand_tracker import (
     MIDDLE_MCP_IDX,
+    WRIST_IDX,
     check_two_hand_tap,
     get_thumb_trigger_metric,
     is_pointing_down,
@@ -202,14 +203,27 @@ class GunController:
                 self.reload_all()
 
         # 2. Rock-Solid Spatial Hand-to-Gun Assignment using Palm Center
-        # Palm Center X = (wrist_norm.x + lm[MIDDLE_MCP].x) / 2.0
+        # Palm Center X = (wrist_x + middle_mcp_x) / 2.0
         # Gun 1 (LEFT GUN, Orange) takes hand on the left of screen
         # Gun 0 (RIGHT GUN, Cyan) takes hand on the right of screen
+        def _get_palm_x(item: Dict[str, Any]) -> float:
+            if "wrist_norm" in item:
+                wx = float(item["wrist_norm"][0])
+            elif "landmarks" in item and hasattr(item["landmarks"], "shape") and item["landmarks"].shape[0] > WRIST_IDX:
+                wx = float(item["landmarks"][WRIST_IDX][0])
+            else:
+                wx = 0.5
+            if "landmarks" in item and hasattr(item["landmarks"], "shape") and item["landmarks"].shape[0] > MIDDLE_MCP_IDX:
+                mx = float(item["landmarks"][MIDDLE_MCP_IDX][0])
+            else:
+                mx = wx
+            return (wx + mx) / 2.0
+
         sorted_hands: List[Optional[Dict[str, Any]]] = [None, None]
         if len(hands_data) >= 2:
             hA, hB = hands_data[0], hands_data[1]
-            palm_xA = (hA["wrist_norm"][0] + float(hA["landmarks"][MIDDLE_MCP_IDX][0])) / 2.0
-            palm_xB = (hB["wrist_norm"][0] + float(hB["landmarks"][MIDDLE_MCP_IDX][0])) / 2.0
+            palm_xA = _get_palm_x(hA)
+            palm_xB = _get_palm_x(hB)
             if palm_xA < palm_xB:
                 sorted_hands[1] = hA  # Left side of screen -> Left Gun (Gun 1)
                 sorted_hands[0] = hB  # Right side of screen -> Right Gun (Gun 0)
@@ -218,7 +232,7 @@ class GunController:
                 sorted_hands[0] = hA
         elif len(hands_data) == 1:
             h = hands_data[0]
-            palm_x = (h["wrist_norm"][0] + float(h["landmarks"][MIDDLE_MCP_IDX][0])) / 2.0
+            palm_x = _get_palm_x(h)
             if palm_x < 0.45:
                 sorted_hands[1] = h  # Left side -> Left Gun
             elif palm_x > 0.55:
@@ -347,8 +361,13 @@ class GunController:
     ) -> Dict[str, Any]:
         """Backward-compatible single-hand update method."""
         if raw_landmarks is not None and index_tip_norm is not None:
+            w_norm = (
+                float(raw_landmarks[WRIST_IDX][0]),
+                float(raw_landmarks[WRIST_IDX][1]),
+            )
             hands_data = [{
                 "landmarks": raw_landmarks,
+                "wrist_norm": w_norm,
                 "index_tip_norm": index_tip_norm,
                 "handedness": "Primary",
                 "hand_idx": 0,

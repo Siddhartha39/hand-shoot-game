@@ -270,6 +270,12 @@ def main() -> None:
             if key in (ord("q"), ord("Q"), 27):
                 break
 
+    except Exception as e:
+        import traceback
+        print(f"\n[ERROR] An error occurred in test_gesture: {e}")
+        traceback.print_exc()
+        input("\nPress Enter to exit...")
+
     finally:
         cap.release()
         tracker.close()
