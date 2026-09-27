@@ -99,6 +99,7 @@ def classify_gesture_heuristically(landmarks: np.ndarray) -> Tuple[str, float]:
     palm_scale = float(np.linalg.norm(mid_mcp - wrist))
     if palm_scale < 1e-4:
         palm_scale = 1.0
+        
 
     # 1. Index extension check
     idx_tip_dist = np.linalg.norm(landmarks[INDEX_TIP_IDX] - wrist)
